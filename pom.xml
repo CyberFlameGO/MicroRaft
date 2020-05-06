@@ -14,6 +14,7 @@
         <module>microraft-hocon</module>
         <module>microraft-yaml</module>
         <module>microraft-tutorial</module>
+        <module>microraft-example-event-store</module>
     </modules>
 
     <developers>
