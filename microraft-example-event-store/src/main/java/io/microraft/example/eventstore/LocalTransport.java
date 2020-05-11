@@ -19,36 +19,32 @@ package io.microraft.example.eventstore;
 import io.microraft.RaftEndpoint;
 import io.microraft.RaftNode;
 import io.microraft.model.message.RaftMessage;
-import io.microraft.report.RaftNodeReport;
-import io.microraft.runtime.RaftNodeRuntime;
+import io.microraft.transport.Transport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import static io.microraft.RaftNodeStatus.TERMINATED;
-import static io.microraft.RaftNodeStatus.isTerminal;
 import static java.util.Objects.requireNonNull;
 
 /**
- * A very simple Raft node runtime implementation that uses a single thread executor to execute tasks and operations. It
- * also provides a mechanism to define custom drop / allow rules for specific message types and endpoints.
+ * A very simple Raft node transport implementation that provides a mechanism to define custom drop / allow rules for
+ * specific message types and endpoints.
  */
-public class LocalRaftNodeRuntime implements RaftNodeRuntime {
+public class LocalTransport implements Transport {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LocalRaftNodeRuntime.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LocalTransport.class);
 
     private final RaftEndpoint localEndpoint;
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private final ConcurrentMap<RaftEndpoint, RaftNode> nodes = new ConcurrentHashMap<>();
 
-    public LocalRaftNodeRuntime(RaftEndpoint localEndpoint) {
+    public LocalTransport(RaftEndpoint localEndpoint) {
         this.localEndpoint = requireNonNull(localEndpoint);
     }
 
@@ -99,29 +95,6 @@ public class LocalRaftNodeRuntime implements RaftNodeRuntime {
     }
 
     @Override
-    public void execute(@Nonnull Runnable task) {
-        try {
-            executor.execute(task);
-        } catch (RejectedExecutionException e) {
-            LOGGER.error(localEndpoint + " failed", e);
-        }
-    }
-
-    @Override
-    public void submit(@Nonnull Runnable task) {
-        execute(task);
-    }
-
-    @Override
-    public void schedule(@Nonnull Runnable task, long delay, @Nonnull TimeUnit timeUnit) {
-        try {
-            executor.schedule(task, delay, timeUnit);
-        } catch (RejectedExecutionException e) {
-            LOGGER.error(localEndpoint + " failed", e);
-        }
-    }
-
-    @Override
     public void send(@Nonnull RaftEndpoint target, @Nonnull RaftMessage message) {
         if (localEndpoint.equals(target)) {
             throw new IllegalArgumentException(localEndpoint.getId() + " cannot send " + message + " to itself!");
@@ -135,16 +108,5 @@ public class LocalRaftNodeRuntime implements RaftNodeRuntime {
                 LOGGER.error("Send " + message + " to " + target + " failed.", e);
             }
         }
-    }
-
-    @Override
-    public void handleRaftNodeReport(@Nonnull RaftNodeReport report) {
-        if (isTerminal(report.getStatus())) {
-            executor.shutdown();
-        }
-    }
-
-    @Override
-    public void onRaftGroupTerminated() {
     }
 }
