@@ -19,6 +19,7 @@ package io.microraft.impl.state;
 
 import io.microraft.RaftEndpoint;
 import io.microraft.RaftRole;
+import io.microraft.exception.NotLeaderException;
 import io.microraft.exception.RaftException;
 import io.microraft.impl.log.RaftLog;
 import io.microraft.impl.log.SnapshotChunkCollector;
@@ -91,7 +92,7 @@ public final class RaftState {
      * Latest term this Raft node has seen along with the
      * latest known Raft leader endpoint (or null if not known).
      */
-    private volatile RaftGroupTermState termState;
+    private volatile RaftTermState termState;
     /**
      * Index of highest log entry known to be committed.
      * (starts with 0 and increases monotonically)
@@ -152,7 +153,7 @@ public final class RaftState {
         this.initialMembers = groupMembers;
         this.committedGroupMembers = groupMembers;
         this.effectiveGroupMembers = groupMembers;
-        this.termState = RaftGroupTermState.INITIAL;
+        this.termState = RaftTermState.INITIAL;
         this.store = requireNonNull(store);
         this.log = RaftLog.create(logCapacity, store);
     }
@@ -164,7 +165,7 @@ public final class RaftState {
         this.initialMembers = new RaftGroupMembersState(0, restoredState.getInitialMembers(), this.localEndpoint);
         this.committedGroupMembers = this.initialMembers;
         this.effectiveGroupMembers = this.committedGroupMembers;
-        this.termState = RaftGroupTermState.restore(restoredState.getTerm(), restoredState.getVotedEndpoint());
+        this.termState = RaftTermState.restore(restoredState.getTerm(), restoredState.getVotedEndpoint());
 
         SnapshotEntry snapshot = restoredState.getSnapshotEntry();
         if (isNonInitial(snapshot)) {
@@ -182,7 +183,7 @@ public final class RaftState {
 
     public static RaftState create(Object groupId, RaftEndpoint localEndpoint, Collection<RaftEndpoint> endpoints,
                                    int logCapacity) {
-        return create(groupId, localEndpoint, endpoints, logCapacity, NopRaftStore.INSTANCE);
+        return create(groupId, localEndpoint, endpoints, logCapacity, new NopRaftStore());
     }
 
     public static RaftState create(Object groupId, RaftEndpoint localEndpoint, Collection<RaftEndpoint> endpoints,
@@ -191,7 +192,7 @@ public final class RaftState {
     }
 
     public static RaftState restore(Object groupId, RestoredRaftState restoredState, int logCapacity) {
-        return restore(groupId, restoredState, logCapacity, NopRaftStore.INSTANCE);
+        return restore(groupId, restoredState, logCapacity, new NopRaftStore());
     }
 
     public static RaftState restore(Object groupId, RestoredRaftState restoredState, int logCapacity, RaftStore store) {
@@ -264,7 +265,7 @@ public final class RaftState {
     /**
      * Returns the latest term information this Raft node has seen.
      */
-    public RaftGroupTermState termState() {
+    public RaftTermState termState() {
         return termState;
     }
 
@@ -327,17 +328,14 @@ public final class RaftState {
     }
 
     /**
-     * Initializes the Raft state by initializing the state store
-     * and persisting the initial member list
+     * Persists the initial member list to the Raft store
      *
      * @throws IOException
-     *         if an IO error occurs inside the state store
-     * @see RaftStore#open()
+     *         if an IO error occurs inside the store
      * @see RaftStore#persistInitialMembers(RaftEndpoint, Collection)
      */
-    public void init()
+    public void persistInitialMembers()
             throws IOException {
-        store.open();
         store.persistInitialMembers(localEndpoint, initialMembers.getMembers());
     }
 
@@ -351,10 +349,15 @@ public final class RaftState {
     public void toFollower(int term) {
         role = FOLLOWER;
         preCandidateState = null;
+        LeaderState currentLeaderState = leaderState;
         leaderState = null;
         candidateState = null;
         completeLeadershipTransfer(null);
         setTerm(term);
+        if (currentLeaderState != null) {
+            // this is done here to read the updated leader field
+            currentLeaderState.queryState().fail(new NotLeaderException(localEndpoint, leader()));
+        }
         persistTerm();
     }
 

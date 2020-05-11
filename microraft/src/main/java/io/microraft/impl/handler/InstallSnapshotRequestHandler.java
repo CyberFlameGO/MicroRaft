@@ -104,7 +104,7 @@ public class InstallSnapshotRequestHandler
                 RaftMessage response = modelFactory.createAppendEntriesFailureResponseBuilder().setGroupId(node.getGroupId())
                                                    .setSender(localEndpoint()).setTerm(state.term()).setExpectedNextIndex(0)
                                                    .setQuerySeqNo(0).setFlowControlSeqNo(0).build();
-                node.send(response, sender);
+                node.send(sender, response);
             }
 
             return;
@@ -185,7 +185,7 @@ public class InstallSnapshotRequestHandler
                                            .setSender(localEndpoint()).setTerm(state.term())
                                            .setLastLogIndex(request.getSnapshotIndex()).setQuerySeqNo(request.getQuerySeqNo())
                                            .setFlowControlSeqNo(request.getFlowControlSeqNo()).build();
-        node.send(response, state.leader());
+        node.send(state.leader(), response);
     }
 
     private SnapshotChunkCollector getOrCreateSnapshotChunkCollector(InstallSnapshotRequest request) {
@@ -272,11 +272,12 @@ public class InstallSnapshotRequestHandler
                                        .setQuerySeqNo(state.leader().equals(target) ? request.getQuerySeqNo() : 0)
                                        .setFlowControlSeqNo(request.getFlowControlSeqNo()).build();
 
-            node.send(response, target);
+            node.send(target, response);
 
             if (node.getConfig().isTransferSnapshotsFromFollowersEnabled()) {
-                node.schedule(() -> handleUnresponsiveEndpoint(state.term(), target, request.getSnapshotIndex(), e.getValue()),
-                              SECONDS.toMillis(node.getConfig().getLeaderHeartbeatPeriodSecs()));
+                node.getExecutor()
+                    .schedule(() -> handleUnresponsiveEndpoint(state.term(), target, request.getSnapshotIndex(), e.getValue()),
+                              node.getConfig().getLeaderHeartbeatPeriodSecs(), SECONDS);
             }
         }
     }
@@ -318,9 +319,9 @@ public class InstallSnapshotRequestHandler
                                        .setRequestedSnapshotChunkIndex(e.getValue()).setQuerySeqNo(0).setFlowControlSeqNo(0)
                                        .build();
 
-            node.send(response, target);
-            node.schedule(() -> handleUnresponsiveEndpoint(term, target, snapshotIndex, e.getValue()),
-                          SECONDS.toMillis(node.getConfig().getLeaderHeartbeatPeriodSecs()));
+            node.send(target, response);
+            node.getExecutor().schedule(() -> handleUnresponsiveEndpoint(term, target, snapshotIndex, e.getValue()),
+                                        node.getConfig().getLeaderHeartbeatPeriodSecs(), SECONDS);
         }
     }
 

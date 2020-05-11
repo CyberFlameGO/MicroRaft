@@ -18,9 +18,7 @@ package io.microraft.model.impl;
 
 import io.microraft.model.RaftModel;
 import io.microraft.model.RaftModelFactory;
-import io.microraft.model.groupop.TerminateRaftGroupOp.TerminateRaftGroupOpBuilder;
 import io.microraft.model.groupop.UpdateRaftGroupMembersOp.UpdateRaftGroupMembersOpBuilder;
-import io.microraft.model.impl.groupop.DefaultTerminateRaftGroupOpOrBuilder;
 import io.microraft.model.impl.groupop.DefaultUpdateRaftGroupMembersOpOrBuilder;
 import io.microraft.model.impl.log.DefaultLogEntryOrBuilder;
 import io.microraft.model.impl.log.DefaultSnapshotChunkOrBuilder;
@@ -58,16 +56,8 @@ import javax.annotation.Nonnull;
  *
  * @author metanet
  */
-public final class DefaultRaftModelFactory
+public class DefaultRaftModelFactory
         implements RaftModelFactory {
-
-    /**
-     * The singleton instance.
-     */
-    public static final RaftModelFactory INSTANCE = new DefaultRaftModelFactory();
-
-    private DefaultRaftModelFactory() {
-    }
 
     @Nonnull
     @Override
@@ -145,12 +135,6 @@ public final class DefaultRaftModelFactory
     @Override
     public VoteResponseBuilder createVoteResponseBuilder() {
         return new DefaultVoteResponseOrBuilder();
-    }
-
-    @Nonnull
-    @Override
-    public TerminateRaftGroupOpBuilder createTerminateRaftGroupOpBuilder() {
-        return new DefaultTerminateRaftGroupOpOrBuilder();
     }
 
     @Nonnull

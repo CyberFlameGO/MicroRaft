@@ -19,7 +19,8 @@ package io.microraft.statemachine;
 
 import io.microraft.RaftConfig;
 import io.microraft.RaftNode;
-import io.microraft.runtime.RaftNodeRuntime;
+import io.microraft.executor.RaftNodeExecutor;
+import io.microraft.lifecycle.RaftNodeLifecycleAware;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -41,13 +42,22 @@ import java.util.function.Consumer;
  * <p>
  * The operations committed in a Raft node instance are run in the same thread
  * that runs the tasks submitted by that Raft node instance. Since
- * {@link RaftNodeRuntime} ensures the thread-safe execution of the tasks
+ * {@link RaftNodeExecutor} ensures the thread-safe execution of the tasks
  * submitted by a Raft node, state machine implementations do not need to be
  * thread-safe.
+ * <p>
+ * A {@link StateMachine} implementation can implement
+ * {@link RaftNodeLifecycleAware} to perform initialization and clean up work
+ * during {@link RaftNode} startup and termination. {@link RaftNode} calls
+ * {@link RaftNodeLifecycleAware#onRaftNodeStart()} before calling any other
+ * method on {@link StateMachine}, and finally calls
+ * {@link RaftNodeLifecycleAware#onRaftNodeTerminate()} on termination.
  *
  * @author mdogan
  * @author metanet
  * @see RaftNode
+ * @see RaftNodeExecutor
+ * @see RaftNodeLifecycleAware
  */
 public interface StateMachine {
 

@@ -17,8 +17,9 @@
 package io.microraft.model;
 
 import io.microraft.RaftNode;
-import io.microraft.model.groupop.TerminateRaftGroupOp.TerminateRaftGroupOpBuilder;
+import io.microraft.lifecycle.RaftNodeLifecycleAware;
 import io.microraft.model.groupop.UpdateRaftGroupMembersOp.UpdateRaftGroupMembersOpBuilder;
+import io.microraft.model.impl.DefaultRaftModelFactory;
 import io.microraft.model.log.LogEntry.LogEntryBuilder;
 import io.microraft.model.log.SnapshotChunk.SnapshotChunkBuilder;
 import io.microraft.model.log.SnapshotEntry.SnapshotEntryBuilder;
@@ -33,22 +34,25 @@ import io.microraft.model.message.TriggerLeaderElectionRequest.TriggerLeaderElec
 import io.microraft.model.message.VoteRequest.VoteRequestBuilder;
 import io.microraft.model.message.VoteResponse.VoteResponseBuilder;
 import io.microraft.persistence.RaftStore;
-import io.microraft.runtime.RaftNodeRuntime;
-import io.microraft.statemachine.StateMachine;
+import io.microraft.transport.Transport;
 
 import javax.annotation.Nonnull;
 
 /**
- * Used for creating {@link RaftModel} objects.
+ * Used for creating {@link RaftModel} objects with the builder pattern.
  * <p>
- * Users of MicroRaft must provide an implementation of this interface while
- * creating {@link RaftNode} instances. {@link RaftModel} objects created by
- * a Raft model factory implementation are passed to {@link RaftNodeRuntime},
- * {@link StateMachine} and {@link RaftStore} for networking, operation
- * execution, and persistence.
+ * Users of MicroRaft can provide an implementation of this interface while
+ * creating {@link RaftNode} instances. Otherwise,
+ * {@link DefaultRaftModelFactory} is used. {@link RaftModel} objects created
+ * by a Raft model factory implementation are passed to {@link Transport} for
+ * networking, and {@link RaftStore} for persistence.
  * <p>
- * Raft model objects are populated and created via the builder interfaces
- * returned from the methods of this interface.
+ * A {@link RaftModelFactory} implementation can implement
+ * {@link RaftNodeLifecycleAware} to perform initialization and clean up work
+ * during {@link RaftNode} startup and termination. {@link RaftNode} calls
+ * {@link RaftNodeLifecycleAware#onRaftNodeStart()} before calling any other
+ * method on {@link RaftModelFactory}, and finally calls
+ * {@link RaftNodeLifecycleAware#onRaftNodeTerminate()} on termination.
  *
  * @author metanet
  */
@@ -92,9 +96,6 @@ public interface RaftModelFactory {
 
     @Nonnull
     VoteResponseBuilder createVoteResponseBuilder();
-
-    @Nonnull
-    TerminateRaftGroupOpBuilder createTerminateRaftGroupOpBuilder();
 
     @Nonnull
     UpdateRaftGroupMembersOpBuilder createUpdateRaftGroupMembersOpBuilder();

@@ -268,7 +268,7 @@ public class MembershipChangeTest
 
         leader.changeMembership(leader.getLocalEndpoint(), REMOVE, 0);
 
-        allTheTime(() -> assertThat(getCommitIndex(leader)).isEqualTo(1), 10);
+        allTheTime(() -> assertThat(getCommitIndex(leader)).isEqualTo(1), 5);
     }
 
     @Test(timeout = 300_000)
@@ -308,10 +308,9 @@ public class MembershipChangeTest
         leader.replicate(applyValue("val")).get();
 
         try {
-            leader.changeMembership(leader.getLocalEndpoint(), null, 0).get();
+            leader.changeMembership(leader.getLocalEndpoint(), null, 0);
             fail();
-        } catch (ExecutionException e) {
-            assertThat(e).hasCauseInstanceOf(IllegalArgumentException.class);
+        } catch (NullPointerException ignored) {
         }
     }
 
