@@ -25,8 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import javax.annotation.Nonnull;
 
 import static io.microraft.RaftNodeStatus.TERMINATED;
@@ -41,7 +39,6 @@ public class LocalTransport implements Transport {
     private static final Logger LOGGER = LoggerFactory.getLogger(LocalTransport.class);
 
     private final RaftEndpoint localEndpoint;
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private final ConcurrentMap<RaftEndpoint, RaftNode> nodes = new ConcurrentHashMap<>();
 
     public LocalTransport(RaftEndpoint localEndpoint) {
