@@ -18,7 +18,7 @@ Byzantine failure.
 The availability of a Raft group mainly depends on if the majority (i.e., more
 than half) of the Raft nodes are alive and able to communicate with each other.
 The main rule is, `2f + 1` Raft nodes tolerate failure of `f` Raft nodes. For 
-instance, a 3-node Raft group can tolerate failure of 1 Raft node or a 5-node 
+instance, a 3-node Raft group can tolerate failure of 1 Raft node, or a 5-node
 Raft group can tolerate failure of 2 Raft nodes without losing availability.
 
 ## 1. Handling high system load 
@@ -64,10 +64,10 @@ commit new requests. If we have a persistence implementation
 (i.e, `RaftStore`), we can recover failed Raft nodes. On the other hand, if we 
 don't have persistence or cannot recover the persisted Raft data, we can remove 
 failed Raft nodes from the Raft group. Please note that when we remove a Raft 
-node from a Raft group, the majority value is re-calculated based on the new 
-size of the Raft group. In order to replace a non-recoverable Raft node without 
-hurting the overall availability of the Raft group, we should remove the 
-crashed Raft node first and then add a fresh-new one.
+node from a Raft group, the majority quorum size is re-calculated based on the
+new size of the Raft group. In order to replace a non-recoverable Raft node 
+without hurting the overall availability of the Raft group, we should remove 
+the crashed Raft node first and then add a fresh-new one.
 
 ![](/img/warning.png){: style="height:25px;width:25px"} If Raft nodes are
 created without an actual `RaftStore` implementation in the beginning, 
@@ -225,12 +225,13 @@ require availability of the majority.
 
 In MicroRaft, on each heartbeat tick a leader Raft node checks if it is still 
 in charge, i.e, it has received _Append Entries RPC_ responses from 
-`majority - 1` (majority minus the leader itself) in the last _leader heartbeat 
-timeout_ period. For instance, in a 3-node Raft group with 5 seconds of _leader
-heartbeat timeout_, a Raft leader keeps its leadership role as long as at least
-1 follower has sent an _Append Entries RPC_ response in the last 5 seconds. 
-Otherwise, the leader Raft node demotes itself to the follower role and fails
-pending (i.e., locally appended but not yet committed) operations with 
+`majority quorum size - 1` (majority quorum size minus the leader itself) in 
+the last _leader heartbeat timeout_ period. For instance, in a 3-node Raft 
+group with 5 seconds of _leader heartbeat timeout_, a Raft leader keeps its
+leadership role as long as at least 1 follower has sent an _Append Entries RPC_ 
+response in the last 5 seconds. Otherwise, the leader Raft node demotes itself
+to the follower role and fails pending (i.e., locally appended but not yet
+committed) operations with 
 <a href="https://github.com/MicroRaft/MicroRaft/blob/master/microraft/src/main/java/io/microraft/exception/IndeterminateStateException.java" target="_blank">`IndeterminateStateException`</a>. 
 This behaviour is due to the asynchronous nature of distributed systems. When 
 the leader cannot get _Append Entries RPC_ responses from some of its 

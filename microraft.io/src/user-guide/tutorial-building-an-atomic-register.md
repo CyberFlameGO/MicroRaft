@@ -540,7 +540,8 @@ applied as a series of single changes.
 
 Since we know the rules for member list changes now, let's see some code. In
 our last test, we want to improve our 3-member Raft group's degree of fault 
-tolerance by adding 2 new members (majority of 3 = 2 -> majority of 5 = 3). 
+tolerance by adding 2 new members (majority quorum size of 3 = 2 -> majority
+quorum size of 5 = 3). 
  
 <script src="https://gist.github.com/metanet/4f0ab94b78b369a1cc9ac58ef0e6f011.js"></script>
 
@@ -580,11 +581,11 @@ Our `sysout` line here prints the following:
 New member list: [LocalRaftEndpoint{id=node1}, LocalRaftEndpoint{id=node2}, LocalRaftEndpoint{id=node3}, LocalRaftEndpoint{id=node4}], majority: 3, commit index: 3
 ~~~~
 
-As you see, our Raft group has 4 members now, whose majority is 3. Actually, 
-running a 4-node Raft group has no advantage over running a 3-node Raft group 
-in terms of the degree of fault tolerance because both of them can handle 
-failure of only 1 Raft node. Since we want to achieve better fault tolerance,
-we will add one more Raft node to our Raft group. 
+As you see, our Raft group has 4 members now, whose majority quorum size is 3. 
+Actually, running a 4-node Raft group has no advantage over running a 3-node 
+Raft group in terms of the degree of availability because both of them can 
+handle failure of only 1 Raft node. Since we want to achieve better 
+availability, we will add one more Raft node to our Raft group. 
 
 So we create another Raft endpoint, `endpoint5`, add it to the Raft group, and
 start its Raft node. But this time, as the *group members commit index* 
@@ -598,9 +599,9 @@ Our second `sysout` line prints the following:
 New member list: [LocalRaftEndpoint{id=node1}, LocalRaftEndpoint{id=node2}, LocalRaftEndpoint{id=node3}, LocalRaftEndpoint{id=node4}, LocalRaftEndpoint{id=node5}], majority: 3, commit index: 5
 ~~~~
 
-Now we have 5 nodes in our Raft group and the majority is still 3. It means
-that now our Raft group can tolerate failure of 2 Raft nodes and still remain
-operational. Voila! 
+Now we have 5 nodes in our Raft group and the majority quorum size is still 3. 
+It means that now our Raft group can tolerate failure of 2 Raft nodes and still 
+remain operational. Voila! 
 
 
 ## What's next?
